@@ -23,13 +23,21 @@ def webhook():
     payload = request.get_json(silent=True)
     if payload is None:
         return jsonify({"error": "Invalid JSON"}), 400
-    print(payload)
     event_type = request.headers.get("X-GitHub-Event")
+
+    if event_type != "push":
+        return jsonify({"status": "ignored"}), 200
+    author = payload.get("author", {}).get("name")
+    ref = payload.get("ref")
+    branch = ref.split("/")[-1] if ref else None
+    timestamp = payload.get("head_commit", {}).get("timestamp")
     doc = {
         "request_id": str(uuid.uuid4()),
-        "event_type": event_type,
-        "payload": payload,
-        "received_at": datetime.now(timezone.utc),
+        "action": "PUSH",
+        "author": author,
+        "from_branch": None,
+        "to_branch": branch,
+        "timestamp": timestamp,
     }
     events.insert_one(doc)
     return jsonify({"revieved": True, "event": event_type, "status": "stored"}), 201
