@@ -1,6 +1,12 @@
 from flask import Flask, render_template
+from pymongo import MongoClient
 
 app = Flask(__name__)
+from config import settings
+
+client = MongoClient(settings.MONGO_URI)
+db = settings.DB_NAME
+events = settings.COLLECTION
 
 
 @app.get("/")
