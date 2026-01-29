@@ -1,47 +1,29 @@
-# Dev Assessment - Webhook Receiver
+# GitHub Webhook Receiver (Flask)
 
-Please use this repository for constructing the Flask webhook receiver.
+This app receives GitHub webhook events (push, pull request, merge),
+stores them in MongoDB, and shows recent activity on a simple UI.
 
-*******************
+## How to run
 
-## Setup
+1. Create & activate virtual env  
+   `python -m venv venv`  
+   `venv\Scripts\activate` (Windows) / `source venv/bin/activate`
 
-* Create a new virtual environment
+2. Install deps  
+   `pip install -r requirements.txt`
 
-```bash
-pip install virtualenv
-```
+3. Create `.env` and copy env from `.env.local`
 
-* Create the virtual env
+4. Compile UI  
+   `tsc .\app\static\app.ts `
 
-```bash
-virtualenv venv
-```
+5. Run app  
+   `python run.py`
 
-* Activate the virtual env
+## Webhook
 
-```bash
-source venv/bin/activate
-```
+Expose locally using ngrok:
+`ngrok http 5000`
 
-* Install requirements
-
-```bash
-pip install -r requirements.txt
-```
-
-* Run the flask application (In production, please use Gunicorn)
-
-```bash
-python run.py
-```
-
-* The endpoint is at:
-
-```bash
-POST http://127.0.0.1:5000/webhook/receiver
-```
-
-You need to use this as the base and setup the flask app. Integrate this with MongoDB (commented at `app/extensions.py`)
-
-*******************
+Use this URL in GitHub webhook:
+`/webhook/receiver`
