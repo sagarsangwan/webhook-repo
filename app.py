@@ -20,14 +20,18 @@ def home():
 @app.post("/webhook")
 def webhook():
     print("insidee")
-    payload = request.get_json(silent=True)
+    payload = request.json
+    print(payload)
     if payload is None:
         return jsonify({"error": "Invalid JSON"}), 400
     event_type = request.headers.get("X-GitHub-Event")
 
     if event_type != "push":
         return jsonify({"status": "ignored"}), 200
-    author = payload.get("author", {}).get("name")
+    author_data = (
+        payload.get("pusher") or payload.get("author") or payload.get("sender") or {}
+    )
+    author = author_data.get("name", "Unknown")
     ref = payload.get("ref")
     branch = ref.split("/")[-1] if ref else None
     timestamp = payload.get("head_commit", {}).get("timestamp")
