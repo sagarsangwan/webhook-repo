@@ -7,9 +7,7 @@ from datetime import datetime, timezone
 app = Flask(__name__)
 client = MongoClient(settings.MONGO_URI)
 db = client[settings.DB_NAME]
-events = db[settings.COLLECTION]
-print(events, db)
-print(events.count_documents({}))
+collection = db[settings.COLLECTION]
 
 
 @app.get("/")
@@ -19,32 +17,51 @@ def home():
 
 @app.post("/webhook")
 def webhook():
-    print("insidee")
+    event = request.headers.get("X-GitHub-Event")
     payload = request.json
-    print(payload)
-    if payload is None:
-        return jsonify({"error": "Invalid JSON"}), 400
-    event_type = request.headers.get("X-GitHub-Event")
 
-    if event_type != "push":
-        return jsonify({"status": "ignored"}), 200
-    author_data = (
-        payload.get("pusher") or payload.get("author") or payload.get("sender") or {}
-    )
-    author = author_data.get("name", "Unknown")
-    ref = payload.get("ref")
-    branch = ref.split("/")[-1] if ref else None
-    timestamp = payload.get("head_commit", {}).get("timestamp")
-    doc = {
-        "request_id": str(uuid.uuid4()),
-        "action": "PUSH",
-        "author": author,
-        "from_branch": None,
-        "to_branch": branch,
-        "timestamp": timestamp,
-    }
-    events.insert_one(doc)
-    return jsonify({"revieved": True, "event": event_type, "status": "stored"}), 201
+    if event == "push":
+        data = {
+            "event": "push",
+            "author": payload["pusher"]["name"],
+            "from_branch": None,
+            "to_branch": payload["ref"].split("/")[-1],
+            "timestamp": payload["head_commit"]["timestamp"],
+        }
+        collection.insert_one(data)
+
+    elif event == "pull_request":
+        action = payload["action"]
+        pr = payload["pull_request"]
+
+        if action == "opened":
+            data = {
+                "event": "pull_request",
+                "author": pr["user"]["login"],
+                "from_branch": pr["head"]["ref"],
+                "to_branch": pr["base"]["ref"],
+                "timestamp": pr["created_at"],
+            }
+            collection.insert_one(data)
+
+        elif action == "closed" and pr["merged"]:
+            data = {
+                "event": "merge",
+                "author": pr["merged_by"]["login"],
+                "from_branch": pr["head"]["ref"],
+                "to_branch": pr["base"]["ref"],
+                "timestamp": pr["merged_at"],
+            }
+            collection.insert_one(data)
+
+    return jsonify({"status": "ok"}), 200
+
+
+@app.get("/events")
+def get_events():
+    events = list(collection.find({}, {"_id": 0}).sort("timestamp", -1).limit(20))
+    print(events)
+    return jsonify(events), 200
 
 
 if __name__ == "__main__":
