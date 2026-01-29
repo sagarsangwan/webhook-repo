@@ -1,25 +1,21 @@
-from flask import Flask, render_template, request, jsonify
-from pymongo import MongoClient
-import uuid
-from config import settings
-from datetime import datetime, timezone
-
-app = Flask(__name__)
-client = MongoClient(settings.MONGO_URI)
-db = client[settings.DB_NAME]
-collection = db[settings.COLLECTION]
+from flask import request, jsonify, render_template
+from datetime import datetime
+from app.extensions import mongo
+from app.webhook import webhook
 
 
-@app.get("/")
+
+@webhook.get("/")
 def home():
     return render_template("index.html")
 
 
-@app.post("/webhook")
-def webhook():
+@webhook.route("/receiver", methods=["POST"])
+def receiver():
+
     event = request.headers.get("X-GitHub-Event")
     payload = request.json
-
+    collection = mongo.db.events
     if event == "push":
         data = {
             "event": "push",
@@ -57,12 +53,8 @@ def webhook():
     return jsonify({"status": "ok"}), 200
 
 
-@app.get("/events")
-def get_events():
-    events = list(collection.find({}, {"_id": 0}).sort("timestamp", -1).limit(20))
-    print(events)
-    return jsonify(events), 200
-
-
-if __name__ == "__main__":
-    app.run(debug=True)
+@webhook.get("/events")
+def events():
+    collection = mongo.db.events
+    data = list(collection.find({}, {"_id": 0}).sort("timestamp", -1).limit(20))
+    return jsonify(data), 200
