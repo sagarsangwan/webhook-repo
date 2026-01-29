@@ -34,6 +34,27 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
+function timeAgo(isoDate) {
+    var now = new Date().getTime();
+    var past = new Date(isoDate).getTime();
+    var diff = Math.floor((now - past) / 1000);
+    if (diff < 5)
+        return "just now";
+    if (diff < 60)
+        return "".concat(diff, " seconds ago");
+    var minutes = Math.floor(diff / 60);
+    if (minutes < 60)
+        return "".concat(minutes, " minute").concat(minutes > 1 ? "s" : "", " ago");
+    var hours = Math.floor(minutes / 60);
+    if (hours < 24)
+        return "".concat(hours, " hour").concat(hours > 1 ? "s" : "", " ago");
+    var days = Math.floor(hours / 24);
+    if (days === 1)
+        return "yesterday";
+    if (days < 7)
+        return "".concat(days, " days ago");
+    return new Date(isoDate).toLocaleDateString();
+}
 var list = document.getElementById("events");
 function formatEvent(e) {
     var time = new Date(e.timestamp).toUTCString();
@@ -63,11 +84,15 @@ function loadEvents() {
                     list.innerHTML = "";
                     data.forEach(function (e) {
                         var li = document.createElement("li");
-                        li.textContent = formatEvent(e);
+                        li.className = "event-item";
+                        var textDiv = document.createElement("div");
+                        textDiv.className = "event-text";
+                        textDiv.textContent = formatEvent(e);
                         var timeDiv = document.createElement("div");
                         timeDiv.className = "time";
-                        timeDiv.textContent = new Date(e.timestamp).toUTCString();
+                        timeDiv.textContent = timeAgo(e.timestamp);
                         li.appendChild(timeDiv);
+                        li.appendChild(textDiv);
                         list.appendChild(li);
                     });
                     return [3 /*break*/, 4];
